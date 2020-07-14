@@ -1,0 +1,105 @@
+---
+title: "Human Activity Recognition"
+author: "Dongjun_Cho"
+date: "7/11/2020"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Background
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+## Data
+
+The training data for this project are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv
+
+The test data are available here:
+https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv
+
+
+## Summary
+
+The goal of our project is to predict the manner in which they did the exercise.
+
+
+## Libraries
+```{r}
+library(lattice)
+library(caret)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library(RColorBrewer)
+library(rattle)
+```
+
+## Getting and cleaning the data
+```{r}
+train <- read.csv("C:/Users/dongj/Desktop/R_data_Desk/Practical_machine_learning/pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+
+test <- read.csv("C:/Users/dongj/Desktop/R_data_Desk/Practical_machine_learning/pml-testing.csv", na.strings=c("NA","#DIV/0!",""))
+
+dim(train)
+dim(test)
+```
+
+Remove missing values
+
+In the summary, We can find there are missing values in our dataset.
+```{r}
+train <- train[,colSums(is.na(train))==0]
+test <- test[,colSums(is.na(test))==0]
+
+```
+
+Remove unrelated data columns
+
+columns 1 through columns 7 are the data that are not related to this model
+(user_name, raw_timestamp_part_1, raw_timestamp_part_,2 cvtd_timestamp, new_window, and  num_window )
+```{r}
+train <- train[,-c(1:7)]
+test <- test[,-c(1:7)]
+
+```
+
+## Cross Validation
+Using the training data set, we split the data set into training and test sets
+```{r}
+inTrain <- createDataPartition(train$classe, p=0.75, list = FALSE)
+training <- train[inTrain,]
+testing <- train[-inTrain,]
+
+```
+
+## Decision Tree
+```{r}
+train_fit <- train(classe ~ .,method = "rpart", data = training)
+print(train_fit$finalModel)
+predict_fit <- predict(train_fit, testing)
+confusionMatrix(table(predict_fit, testing$classe))
+rpart.plot(train_fit$finalModel)
+```
+
+
+## Random Forest Model
+```{r}
+train_rf <- train(classe ~ .,method = "rf", data = training, ntree= 50)
+print(train_rf)
+predict_rf <- predict(train_rf, testing)
+confusionMatrix(table(predict_rf, testing$classe))
+```
+
+Accuracy for Decision tree gives 49.84% compared to the Random forest model which is 99.23% accuracy.
+The formula for expected out-of-sample error is 1 - accuracy for prediction.
+The expected out-of-sample error for the decision tree is 50.14%, but the Random forest model gives only 0.77%. 
+
+Since the Random forest model prediction gives higher accuracy than decision tree prediction, we choose a random forest model prediction. 
+
+## Random Forest Prediction Model
+````{r}
+predict(train_rf, test)
+```
+
